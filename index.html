@@ -1031,6 +1031,7 @@ async function scaricaPDF() {
         }
         rows.push({
             ds, g, isSat,
+            inAM, outAM, inPM, outPM,
             assenza: r.dataset.assenza || "",
             ore:  r.querySelector(".cell-ore")?.textContent || "0.00",
             extra:r.querySelector(".inp-extra")?.value || "0",
