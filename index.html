@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prospetto Ore — TMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+/* ═══════════════════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════════════════ */
+:root {
+    --primary:       #1e3a5f;
+    --primary-light: #e8eef6;
+    --accent:        #2563eb;
+    --success:       #059669;
+    --success-light: #d1fae5;
+    --warning:       #d97706;
+    --warning-light: #fef3c7;
+    --danger:        #dc2626;
+    --danger-light:  #fee2e2;
+    --gray-50:  #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+    --shadow:    0 1px 3px rgb(0 0 0/.12), 0 1px 2px rgb(0 0 0/.08);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0/.1), 0 2px 4px -2px rgb(0 0 0/.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0/.1), 0 4px 6px -4px rgb(0 0 0/.1);
+    --r: .5rem;
+}
+*,*::before,*::after { box-sizing: border-box; }
+body { font-family:'Inter',system-ui,sans-serif; background:var(--gray-100); color:var(--gray-800); margin:0; min-height:100vh; }
+
+/* ─── HEADER ─── */
+.header {
+    position:sticky; top:0; z-index:1000;
+    background:var(--primary); color:white;
+    box-shadow:var(--shadow-md);
+}
+.header-inner { max-width:1340px; margin:0 auto; padding:.9rem 1.5rem; }
+
+.brand { display:flex; align-items:center; gap:.75rem; margin-bottom:.85rem; }
+.brand-icon {
+    width:38px; height:38px; border-radius:8px;
+    background:rgba(255,255,255,.15); display:grid; place-items:center;
+    font-size:1.1rem; flex-shrink:0;
+}
+.brand-title { font-size:1rem; font-weight:700; line-height:1.15; }
+.brand-sub   { font-size:.68rem; font-weight:400; opacity:.7; margin-top:1px; }
+.brand-badge {
+    margin-left:auto; background:rgba(255,255,255,.15);
+    border:1px solid rgba(255,255,255,.25); border-radius:2rem;
+    padding:.2rem .65rem; font-size:.68rem; font-weight:600; white-space:nowrap;
+}
+
+.controls { display:grid; grid-template-columns:1.4fr 1fr .7fr; gap:.75rem; }
+@media(max-width:640px){ .controls{ grid-template-columns:1fr; } }
+
+.fld label {
+    display:block; font-size:.67rem; font-weight:600;
+    text-transform:uppercase; letter-spacing:.06em;
+    color:rgba(255,255,255,.65); margin-bottom:.25rem;
+}
+input,select {
+    width:100%; padding:.5rem .7rem;
+    border:1.5px solid rgba(255,255,255,.25); border-radius:var(--r);
+    background:rgba(255,255,255,.12); color:white;
+    font:inherit; font-size:.85rem; outline:none;
+    transition:border-color .15s, background .15s;
+}
+input::placeholder { color:rgba(255,255,255,.45); }
+input:focus,select:focus {
+    border-color:rgba(255,255,255,.7); background:rgba(255,255,255,.2);
+}
+select option { background:var(--primary); color:white; }
+
+.actions {
+    margin-top:.75rem; display:flex; flex-wrap:wrap;
+    gap:.4rem; align-items:center;
+}
+button {
+    display:inline-flex; align-items:center; gap:.3rem;
+    padding:.45rem .85rem; border:none; border-radius:var(--r);
+    cursor:pointer; font:.6rem/1 'Inter',sans-serif;
+    font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+    transition:.15s; white-space:nowrap;
+}
+button:active { transform:scale(.96); }
+
+.btn-white  { background:white; color:var(--primary); }
+.btn-white:hover { background:#f0f4ff; }
+.btn-dark   { background:rgba(0,0,0,.35); color:white; border:1px solid rgba(255,255,255,.2); }
+.btn-dark:hover { background:rgba(0,0,0,.5); }
+.btn-green  { background:#065f46; color:white; }
+.btn-green:hover { background:#047857; }
+.btn-F { background:#d1fae5; color:#065f46; }
+.btn-F:hover { background:#a7f3d0; }
+.btn-P { background:#fef3c7; color:#78350f; }
+.btn-P:hover { background:#fde68a; }
+.btn-M { background:#fee2e2; color:#7f1d1d; }
+.btn-M:hover { background:#fca5a5; }
+.btn-ghost { background:rgba(255,255,255,.12); color:white; border:1px solid rgba(255,255,255,.2); }
+.btn-ghost:hover { background:rgba(255,255,255,.2); }
+.vsep { width:1px; height:22px; background:rgba(255,255,255,.2); margin:0 .1rem; }
+
+/* ─── AUTOCOMPLETE ─── */
+#suggestions {
+    position:absolute; top:calc(100% + 4px); left:0; right:0;
+    background:white; border:1.5px solid var(--gray-200);
+    border-radius:var(--r); box-shadow:var(--shadow-lg);
+    z-index:2000; display:none; max-height:220px; overflow-y:auto;
+}
+.sug-item {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:.5rem .75rem; cursor:pointer; font-size:.83rem; color:var(--gray-800);
+    transition:background .1s;
+}
+.sug-item:hover { background:var(--gray-50); }
+.sug-item + .sug-item { border-top:1px solid var(--gray-100); }
+.sug-del {
+    font-size:.7rem; color:var(--danger); background:none; border:none;
+    cursor:pointer; padding:2px 6px; border-radius:4px;
+    font-weight:700; opacity:.5; transition:.1s; text-transform:none; letter-spacing:0;
+}
+.sug-del:hover { opacity:1; background:var(--danger-light); }
+
+/* ─── LAYOUT ─── */
+.container { max-width:1340px; margin:1.25rem auto; padding:0 1.25rem 3rem; }
+
+/* ─── KPI CARDS ─── */
+.kpi-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:.75rem; margin-bottom:1.25rem;
+}
+.kpi {
+    background:white; border-radius:var(--r); padding:.9rem 1.1rem;
+    border:1.5px solid var(--gray-200); box-shadow:var(--shadow);
+    display:flex; flex-direction:column; gap:.2rem;
+}
+.kpi-label { font-size:.67rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--gray-400); }
+.kpi-value { font-size:1.5rem; font-weight:800; color:var(--gray-900); line-height:1; }
+.kpi.kpi-accent { background:var(--primary); border-color:var(--primary); }
+.kpi.kpi-accent .kpi-label,
+.kpi.kpi-accent .kpi-value { color:white; }
+.kpi.kpi-ok  { background:var(--success); border-color:var(--success); }
+.kpi.kpi-ok .kpi-label,
+.kpi.kpi-ok .kpi-value { color:white; }
+.kpi.kpi-warn { background:var(--warning); border-color:var(--warning); }
+.kpi.kpi-warn .kpi-label,
+.kpi.kpi-warn .kpi-value { color:white; }
+
+/* ─── PRINT AREA ─── */
+#printArea {
+    background:white; border-radius:var(--r);
+    box-shadow:var(--shadow-md); border:1.5px solid var(--gray-200);
+    overflow:hidden;
+}
+
+/* PDF HEADER (hidden on screen) */
+#pdfHeader { display:none; padding:1.5rem 2rem 0; }
+.pdf-company { font-size:.75rem; font-weight:700; color:var(--gray-500); text-transform:uppercase; letter-spacing:.1em; }
+.pdf-title   { font-size:1.3rem; font-weight:800; color:var(--gray-900); margin:.3rem 0 .2rem; }
+.pdf-meta    { font-size:.8rem; color:var(--gray-500); }
+.pdf-divider { border:none; border-top:2px solid var(--primary); margin:1rem 0 0; }
+.pdf-disclaimer {
+    font-size:.65rem; color:var(--gray-500); font-style:italic;
+    margin:.5rem 0 0; line-height:1.5;
+}
+
+/* ─── WEEK BLOCKS ─── */
+.weeks-wrap { padding:1.25rem 1.5rem 1.5rem; }
+
+.week-block { margin-bottom:1.75rem; }
+.week-block:last-child { margin-bottom:0; }
+
+.week-hdr {
+    display:flex; align-items:center; gap:.65rem;
+    margin-bottom:.5rem;
+}
+.week-pill {
+    font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em;
+    color:var(--primary); background:var(--primary-light);
+    padding:.22rem .7rem; border-radius:2rem; white-space:nowrap;
+    border:1px solid #c7d8f0;
+}
+.week-line { flex:1; height:1px; background:var(--gray-200); }
+.week-info { font-size:.72rem; font-weight:600; color:var(--gray-400); white-space:nowrap; }
+
+/* ─── TABLE ─── */
+.tbl-wrap { overflow-x:auto; border-radius:.375rem; border:1px solid var(--gray-200); }
+table { width:100%; border-collapse:collapse; min-width:780px; }
+thead tr th {
+    background:var(--gray-50); padding:.55rem .5rem;
+    font-size:.63rem; font-weight:700; text-transform:uppercase;
+    letter-spacing:.07em; color:var(--gray-400);
+    border-bottom:1.5px solid var(--gray-200);
+    text-align:center; white-space:nowrap;
+}
+th.align-left,td.align-left { text-align:left !important; padding-left:.75rem !important; }
+
+/* col groups */
+th.grp-mat { background:#eff6ff; color:#1d4ed8; border-bottom-color:#bfdbfe !important; }
+th.grp-pom { background:#f0fdf4; color:#15803d; border-bottom-color:#bbf7d0 !important; }
+
+tbody tr { cursor:pointer; transition:background .08s; }
+tbody tr:not(:last-child) td { border-bottom:1px solid var(--gray-100); }
+tbody tr:hover td { background:#f8f9ff !important; }
+tbody tr.selected td { background:#dbeafe !important; }
+tbody tr.row-F td { background:#f0fdf4; }
+tbody tr.row-P td { background:#fffbeb; }
+tbody tr.row-M td { background:#fff5f5; }
+tbody tr.row-SAT td { background:#fafafa; }
+tbody tr.row-SAT td.col-pm { background:#f3f4f6 !important; color:var(--gray-300); }
+
+td {
+    padding:.42rem .45rem; text-align:center;
+    font-size:.8rem; vertical-align:middle;
+}
+
+/* time inputs inside cells */
+td input[type="time"] {
+    width:82px; padding:.28rem .35rem; font-size:.77rem;
+    border:1.5px solid var(--gray-200); border-radius:.3rem;
+    background:white; text-align:center; font-family:inherit; color:var(--gray-800);
+    transition:border-color .1s;
+}
+td input[type="time"]:focus {
+    border-color:var(--accent); outline:none;
+    box-shadow:0 0 0 2px rgb(37 99 235/.15);
+}
+td input[type="time"]:disabled {
+    background:var(--gray-100); border-color:var(--gray-200);
+    color:var(--gray-300); cursor:not-allowed;
+}
+td input[type="number"] {
+    width:54px; padding:.28rem .35rem; font-size:.77rem;
+    border:1.5px solid var(--gray-200); border-radius:.3rem;
+    background:white; text-align:center; font-family:inherit; color:var(--gray-800);
+    -moz-appearance:textfield;
+}
+td input[type="number"]::-webkit-inner-spin-button { opacity:.3; }
+td input[type="number"]:focus {
+    border-color:var(--accent); outline:none;
+    box-shadow:0 0 0 2px rgb(37 99 235/.15);
+}
+td input[type="text"] {
+    border:none; background:transparent; font-size:.77rem;
+    width:100%; min-width:70px; padding:0 .2rem;
+    color:var(--gray-600); font-family:inherit;
+}
+
+.cell-date { font-weight:700; color:var(--gray-900); }
+.cell-day  { font-size:.7rem; font-weight:700; color:var(--gray-400); letter-spacing:.05em; text-transform:uppercase; }
+.cell-ore  { font-weight:800; font-size:.88rem; color:var(--gray-800); }
+.ore-ok    { color:var(--success) !important; }
+.ore-low   { color:var(--danger)  !important; }
+.ore-zero  { color:var(--gray-400) !important; }
+
+/* badges */
+.badge {
+    display:inline-block; padding:.18rem .55rem;
+    border-radius:2rem; font-size:.65rem; font-weight:800;
+    letter-spacing:.05em; text-transform:uppercase;
+}
+.badge-F { background:var(--success); color:white; }
+.badge-P { background:var(--warning); color:white; }
+.badge-M { background:var(--danger);  color:white; }
+
+/* week footer */
+.week-foot td {
+    background:var(--primary-light) !important;
+    font-weight:700; font-size:.75rem; color:var(--primary);
+    border-top:1.5px solid #c7d8f0 !important;
+    cursor:default;
+}
+.week-foot:hover td { background:var(--primary-light) !important; }
+
+/* ─── DISCLAIMER STRIP ─── */
+.disclaimer-strip {
+    background:var(--gray-50); border-top:1px solid var(--gray-200);
+    padding:.6rem 1.5rem; font-size:.68rem; color:var(--gray-400);
+    font-style:italic; line-height:1.6;
+}
+
+/* ─── TOAST ─── */
+#toast {
+    position:fixed; bottom:1.25rem; right:1.25rem;
+    background:var(--gray-900); color:white;
+    padding:.6rem 1rem; border-radius:var(--r);
+    font-size:.8rem; font-weight:500;
+    box-shadow:var(--shadow-lg); z-index:9999;
+    transform:translateY(80px); opacity:0;
+    transition:.28s cubic-bezier(.34,1.56,.64,1);
+    pointer-events:none;
+}
+#toast.show { transform:translateY(0); opacity:1; }
+
+/* ─── PDF COMPACT MODE (active during generation) ─── */
+#printArea.pdf-gen { border:none !important; box-shadow:none !important; border-radius:0 !important; }
+#printArea.pdf-gen .weeks-wrap { padding:.4rem .6rem .6rem; }
+#printArea.pdf-gen .week-block { margin-bottom:.6rem; }
+#printArea.pdf-gen .week-hdr  { margin-bottom:.25rem; }
+#printArea.pdf-gen .week-pill { font-size:.55rem; padding:.12rem .5rem; }
+#printArea.pdf-gen .week-info { font-size:.6rem; }
+
+#printArea.pdf-gen table    { min-width:unset; border-radius:0; }
+#printArea.pdf-gen thead tr th {
+    padding:.28rem .35rem; font-size:.58rem; letter-spacing:.04em;
+}
+#printArea.pdf-gen td { padding:.25rem .3rem; font-size:.72rem; }
+#printArea.pdf-gen .cell-date { font-size:.72rem; }
+#printArea.pdf-gen .cell-day  { font-size:.62rem; }
+#printArea.pdf-gen .cell-ore  { font-size:.78rem; }
+
+#printArea.pdf-gen td input[type="time"] {
+    width:64px; font-size:.65rem; padding:.15rem .18rem;
+    border:.8px solid #d1d5db; border-radius:.2rem;
+}
+#printArea.pdf-gen td input[type="number"] {
+    width:38px; font-size:.65rem; padding:.15rem .18rem;
+    border:.8px solid #d1d5db; border-radius:.2rem;
+}
+#printArea.pdf-gen td input[type="text"] { font-size:.65rem; }
+#printArea.pdf-gen .week-foot td { padding:.22rem .3rem; font-size:.65rem; }
+#printArea.pdf-gen .disclaimer-strip { padding:.35rem .6rem; font-size:.6rem; }
+
+/* PDF summary table */
+#pdfSummary { display:none; }
+#printArea.pdf-gen #pdfSummary { display:block; }
+
+/* ─── PRINT / BROWSER PRINT ─── */
+@media print {
+    body { background:white; }
+    .header,.kpi-grid,.actions,#toast { display:none !important; }
+    #printArea { box-shadow:none; border:none; border-radius:0; }
+    #pdfHeader  { display:block !important; }
+    #pdfSummary { display:block !important; }
+    .week-block { page-break-inside:avoid; }
+}
+    </style>
+</head>
+<body>
+
+<!-- ══════════════ HEADER ══════════════ -->
+<div class="header">
+<div class="header-inner">
+
+    <div class="brand">
+        <div class="brand-icon">📋</div>
+        <div>
+            <div class="brand-title">Prospetto Ore Mensili</div>
+            <div class="brand-sub">TMS — Time Management System · Modulo interno aziendale</div>
+        </div>
+        <div class="brand-badge">40 h / settimana</div>
+    </div>
+
+    <div class="controls">
+        <div class="fld" style="position:relative">
+            <label for="dipendente">Dipendente</label>
+            <input id="dipendente" placeholder="Nome e Cognome…"
+                onfocus="showSuggestions(this.value)"
+                oninput="showSuggestions(this.value)"
+                autocomplete="off">
+            <div id="suggestions"></div>
+        </div>
+        <div class="fld">
+            <label for="mese">Mese</label>
+            <select id="mese" onchange="onFilterChange()"></select>
+        </div>
+        <div class="fld">
+            <label for="anno">Anno</label>
+            <input id="anno" type="number" min="2020" max="2035" onchange="onFilterChange()">
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="btn-white"  onclick="genera()">🔄 Genera / Aggiorna</button>
+        <button class="btn-dark"   onclick="scaricaPDF()">📄 Scarica PDF</button>
+        <button class="btn-green"  onclick="esportaCSV()">📊 Esporta CSV</button>
+        <div class="vsep"></div>
+        <button class="btn-F" onclick="applicaAssenza('row-F','F')">🌴 Ferie</button>
+        <button class="btn-P" onclick="applicaAssenza('row-P','P')">⏱ Permesso</button>
+        <button class="btn-M" onclick="applicaAssenza('row-M','M')">🤒 Malattia</button>
+        <button class="btn-ghost"  onclick="resetAssenze()">✕ Reset stato</button>
+        <div class="vsep"></div>
+        <button class="btn-ghost"  onclick="clearSelection()">Deseleziona tutto</button>
+        <span id="saveStatus" style="margin-left:.4rem;font-size:.7rem;opacity:.7;color:white;"></span>
+    </div>
+
+</div>
+</div>
+
+<!-- ══════════════ CONTENT ══════════════ -->
+<div class="container">
+
+    <!-- KPI -->
+    <div class="kpi-grid">
+        <div class="kpi">
+            <span class="kpi-label">Giorni lavorativi</span>
+            <div class="kpi-value" id="kGiorni">—</div>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">Giorni presenti</span>
+            <div class="kpi-value" id="kPresenti">—</div>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">Ferie</span>
+            <div class="kpi-value" id="kFerie">—</div>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">Permessi</span>
+            <div class="kpi-value" id="kPermessi">—</div>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">Malattia</span>
+            <div class="kpi-value" id="kMalattia">—</div>
+        </div>
+        <div class="kpi kpi-ok">
+            <span class="kpi-label">Ore lavorate</span>
+            <div class="kpi-value" id="kOreL">—</div>
+        </div>
+        <div class="kpi kpi-warn">
+            <span class="kpi-label">Straordinari</span>
+            <div class="kpi-value" id="kExtra">—</div>
+        </div>
+        <div class="kpi kpi-accent">
+            <span class="kpi-label">Totale (incl. assenze)</span>
+            <div class="kpi-value" id="kOreC">—</div>
+        </div>
+    </div>
+
+    <!-- PRINT AREA -->
+    <div id="printArea">
+
+        <!-- PDF-only header -->
+        <div id="pdfHeader">
+
+            <!-- TOP BAR: logo + document info -->
+            <div style="display:flex; align-items:stretch; justify-content:space-between; gap:1rem; padding:1.1rem 1.4rem .85rem; background:#fff; border-bottom:2.5px solid #1e3a5f;">
+
+                <!-- LOGO HERRERA SYSTEM -->
+                <div style="display:flex; align-items:center; gap:.9rem; flex-shrink:0;">
+                    <svg width="56" height="56" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="lgHS" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0%"   stop-color="#1e3a5f"/>
+                                <stop offset="100%" stop-color="#2563eb"/>
+                            </linearGradient>
+                        </defs>
+                        <!-- Shield / badge background -->
+                        <rect x="0" y="0" width="56" height="56" rx="10" fill="url(#lgHS)"/>
+                        <!-- H letter strokes -->
+                        <rect x="9"  y="13" width="5.5" height="30" rx="1.5" fill="white" opacity=".95"/>
+                        <rect x="9"  y="24" width="17"  height="5"  rx="1.5" fill="white" opacity=".95"/>
+                        <rect x="20.5" y="13" width="5.5" height="30" rx="1.5" fill="white" opacity=".95"/>
+                        <!-- S letter -->
+                        <path d="M33 15.5 Q33 13 36.5 13 L44 13 Q47 13 47 16 Q47 19 44 19.5 L36 20.5 Q33 21 33 24.5 Q33 28.5 36.5 28.5 L44 28.5 Q47 28.5 47 25.5" stroke="white" stroke-width="3.5" stroke-linecap="round" fill="none" opacity=".95"/>
+                        <path d="M47 37 Q47 43 43.5 43 L36 43 Q33 43 33 40 Q33 37 36 36.5 L44 35.5 Q47 35 47 31.5 Q47 27.5 43.5 27.5 L36 27.5 Q33 27.5 33 30.5" stroke="white" stroke-width="3.5" stroke-linecap="round" fill="none" opacity=".95"/>
+                    </svg>
+                    <div>
+                        <div style="font-family:Arial,sans-serif; font-weight:900; font-size:1.15rem; letter-spacing:.12em; color:#1e3a5f; line-height:1.1;">HERRERA</div>
+                        <div style="font-family:Arial,sans-serif; font-weight:300; font-size:.9rem; letter-spacing:.35em; color:#6b7280; line-height:1.1; margin-top:1px;">SYSTEM</div>
+                        <div style="font-family:Arial,sans-serif; font-size:.52rem; letter-spacing:.18em; color:#9ca3af; margin-top:4px; text-transform:uppercase;">Time Management System</div>
+                    </div>
+                </div>
+
+                <!-- CENTER: document title -->
+                <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; border-left:1px solid #e5e7eb; border-right:1px solid #e5e7eb; padding:0 1rem;">
+                    <div style="font-family:Arial,sans-serif; font-size:.6rem; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:#9ca3af; margin-bottom:3px;">Modulo interno aziendale</div>
+                    <div style="font-family:Arial,sans-serif; font-size:1.1rem; font-weight:800; color:#1e3a5f; letter-spacing:.04em;">PROSPETTO ORE MENSILI</div>
+                    <div style="width:40px; height:2px; background:#2563eb; border-radius:2px; margin-top:5px;"></div>
+                </div>
+
+                <!-- RIGHT: document metadata -->
+                <div style="display:flex; flex-direction:column; justify-content:center; gap:.22rem; flex-shrink:0; min-width:200px;">
+                    <div style="display:flex; gap:.4rem; align-items:baseline;">
+                        <span style="font-family:Arial,sans-serif; font-size:.58rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#9ca3af; width:72px;">Dipendente</span>
+                        <span style="font-family:Arial,sans-serif; font-size:.78rem; font-weight:700; color:#1e3a5f;" id="pdfNome">—</span>
+                    </div>
+                    <div style="display:flex; gap:.4rem; align-items:baseline;">
+                        <span style="font-family:Arial,sans-serif; font-size:.58rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#9ca3af; width:72px;">Periodo</span>
+                        <span style="font-family:Arial,sans-serif; font-size:.78rem; font-weight:600; color:#374151;" id="pdfPeriodo">—</span>
+                    </div>
+                    <div style="display:flex; gap:.4rem; align-items:baseline;">
+                        <span style="font-family:Arial,sans-serif; font-size:.58rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#9ca3af; width:72px;">Generato</span>
+                        <span style="font-family:Arial,sans-serif; font-size:.72rem; color:#6b7280;" id="pdfData">—</span>
+                    </div>
+                    <div style="display:flex; gap:.4rem; align-items:baseline;">
+                        <span style="font-family:Arial,sans-serif; font-size:.58rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#9ca3af; width:72px;">Contratto</span>
+                        <span style="font-family:Arial,sans-serif; font-size:.72rem; color:#6b7280;">40h / sett. · Lun-Ven 07-12 / 14-16 · Sab 07-12</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DISCLAIMER BAR -->
+            <div style="background:#f8fafc; border-bottom:1px solid #e5e7eb; padding:.4rem 1.4rem; display:flex; align-items:center; gap:.5rem;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+                    <circle cx="12" cy="12" r="10" stroke="#9ca3af" stroke-width="2"/>
+                    <path d="M12 8v4M12 16h.01" stroke="#9ca3af" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span style="font-family:Arial,sans-serif; font-size:.58rem; color:#6b7280; font-style:italic; line-height:1.5;">
+                    Le ore di lavoro ordinarie ed eventuali ore straordinarie sono conteggiate unicamente per come riportate sul presente prospetto ore,
+                    come modulo interno aziendale. Non sono validi e pertanto non sono presi in considerazione prospetti ore di altra tipologia
+                    o di altre aziende committenti o appaltanti.
+                </span>
+            </div>
+
+        </div>
+
+        <!-- PDF summary (shown only in PDF mode, after the table) -->
+        <div id="pdfSummary">
+            <div style="margin:1rem 1.4rem .5rem; padding:1rem 1.2rem; border:1.5px solid #e5e7eb; border-radius:.5rem; background:#f8fafc; page-break-inside:avoid;">
+                <div style="font-family:Arial,sans-serif; font-size:.65rem; font-weight:800; text-transform:uppercase; letter-spacing:.12em; color:#1e3a5f; margin-bottom:.6rem; padding-bottom:.4rem; border-bottom:1.5px solid #1e3a5f;">
+                    Riepilogo Mensile
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(8,1fr); gap:.5rem; text-align:center;">
+                    <div style="padding:.5rem .3rem; background:white; border:1px solid #e5e7eb; border-radius:.3rem;">
+                        <div style="font-size:.52rem; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.2rem;">Giorni lav.</div>
+                        <div style="font-size:1.1rem; font-weight:800; color:#1f2937;" id="pdfKGiorni">—</div>
+                    </div>
+                    <div style="padding:.5rem .3rem; background:white; border:1px solid #e5e7eb; border-radius:.3rem;">
+                        <div style="font-size:.52rem; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.2rem;">Presenti</div>
+                        <div style="font-size:1.1rem; font-weight:800; color:#1f2937;" id="pdfKPresenti">—</div>
+                    </div>
+                    <div style="padding:.5rem .3rem; background:#d1fae5; border:1px solid #a7f3d0; border-radius:.3rem;">
+                        <div style="font-size:.52rem; font-weight:700; color:#065f46; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.2rem;">Ferie</div>
+                        <div style="font-size:1.1rem; font-weight:800; color:#065f46;" id="pdfKFerie">—</div>
+                    </div>
+                    <div style="padding:.5rem .3rem; background:#fef3c7; border:1px solid #fde68a; border-radius:.3rem;">
+                        <div style="font-size:.52rem; font-weight:700; color:#78350f; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.2rem;">Permessi</div>
+                        <div style="font-size:1.1rem; font-weight:800; color:#78350f;" id="pdfKPermessi">—</div>
+                    </div>
+                    <div style="padding:.5rem .3rem; background:#fee2e2; border:1px solid #fca5a5; border-radius:.3rem;">
+                        <div style="font-size:.52rem; font-weight:700; color:#7f1d1d; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.2rem;">Malattia</div>
+                        <div style="font-size:1.1rem; font-weight:800; color:#7f1d1d;" id="pdfKMalattia">—</div>
+                    </div>
+                    <div style="padding:.5rem .3rem; background:#dbeafe; border:1px solid #bfdbfe; border-radius:.3rem;">
+                        <div style="font-size:.52rem; font-weight:700; color:#1e40af; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.2rem;">Ore lav.</div>
+                        <div style="font-size:1.1rem; font-weight:800; color:#1e40af;" id="pdfKOreL">—</div>
+                    </div>
+                    <div style="padding:.5rem .3rem; background:#fef3c7; border:1px solid #fde68a; border-radius:.3rem;">
+                        <div style="font-size:.52rem; font-weight:700; color:#78350f; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.2rem;">Straord.</div>
+                        <div style="font-size:1.1rem; font-weight:800; color:#78350f;" id="pdfKExtra">—</div>
+                    </div>
+                    <div style="padding:.5rem .3rem; background:#1e3a5f; border:1px solid #1e3a5f; border-radius:.3rem;">
+                        <div style="font-size:.52rem; font-weight:700; color:rgba(255,255,255,.7); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.2rem;">Ore totali</div>
+                        <div style="font-size:1.1rem; font-weight:800; color:white;" id="pdfKOreC">—</div>
+                    </div>
+                </div>
+                <!-- Firma -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem; margin-top:1.2rem; padding-top:.8rem; border-top:1px solid #e5e7eb;">
+                    <div>
+                        <div style="font-size:.6rem; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:.08em; margin-bottom:.3rem;">Firma Dipendente</div>
+                        <div style="border-bottom:1px solid #d1d5db; height:28px;"></div>
+                    </div>
+                    <div>
+                        <div style="font-size:.6rem; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:.08em; margin-bottom:.3rem;">Firma Responsabile</div>
+                        <div style="border-bottom:1px solid #d1d5db; height:28px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weeks -->
+        <div class="weeks-wrap" id="weeksWrap">
+            <div id="weeks"></div>
+        </div>
+
+        <!-- Disclaimer strip (visible on screen too) -->
+        <div class="disclaimer-strip" id="disclaimerStrip">
+            ⚠️ Le ore di lavoro ordinarie ed eventuali ore straordinarie sono conteggiate unicamente per come riportate
+            sul presente prospetto, come modulo interno aziendale. Non sono validi e pertanto non vengono presi in
+            considerazione prospetti ore di altra tipologia o di altre aziende committenti o appaltanti.
+        </div>
+
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ══════════════ SCRIPT ══════════════ -->
+<script>
+/* ── CONSTANTS ───────────────────────────────────────────── */
+const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
+              "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+const G_S  = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
+const G_L  = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
+
+/* Orario contrattuale fisso:
+   Lun–Ven: 07:00–12:00 / 14:00–16:00 → 5h + 2h = 7h
+   Sabato:  07:00–12:00 → 5h
+   Totale settimanale: 40h */
+const ORE_WEEKDAY = 7;   // ore nette contratto lun-ven
+const ORE_SAT     = 5;   // ore nette contratto sabato
+
+/* ── INIT ────────────────────────────────────────────────── */
+const mSel = document.getElementById("mese");
+const oggi  = new Date();
+MESI.forEach((m, i) => {
+    const o = new Option(m, i);
+    if (i === oggi.getMonth()) o.selected = true;
+    mSel.add(o);
+});
+document.getElementById("anno").value = oggi.getFullYear();
+
+let selectedRows = new Set();
+
+/* ── HELPERS ─────────────────────────────────────────────── */
+function getWeekNum(d) {
+    const u = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    u.setUTCDate(u.getUTCDate() + 4 - (u.getUTCDay() || 7));
+    const y = new Date(Date.UTC(u.getUTCFullYear(), 0, 1));
+    return Math.ceil((((u - y) / 86400000) + 1) / 7);
+}
+
+function hhmm2h(v) {
+    if (!v) return null;
+    const [h, m] = v.split(":").map(Number);
+    return h + m / 60;
+}
+
+function h2str(h) {
+    return h.toFixed(2);
+}
+
+function toastMsg(msg, ms = 2000) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), ms);
+}
+
+/* ── STORAGE KEY ─────────────────────────────────────────── */
+function storageKey() {
+    const n = document.getElementById("dipendente").value.trim().toUpperCase();
+    if (!n) return null;
+    return `tms_${n}_${mSel.value}_${document.getElementById("anno").value}`;
+}
+
+/* ── DIPENDENTI ──────────────────────────────────────────── */
+function getDipList() { return JSON.parse(localStorage.getItem("tms_dipendenti") || "[]"); }
+function saveDipList(l) { localStorage.setItem("tms_dipendenti", JSON.stringify(l)); }
+
+function salvaDipendente(n) {
+    n = n.trim().toUpperCase();
+    if (!n) return;
+    const l = getDipList();
+    if (!l.includes(n)) { l.push(n); saveDipList(l); }
+}
+
+function eliminaDipendente(n) {
+    n = n.trim().toUpperCase();
+    const l = getDipList().filter(x => x !== n);
+    saveDipList(l);
+    Object.keys(localStorage)
+        .filter(k => k.startsWith(`tms_${n}_`))
+        .forEach(k => localStorage.removeItem(k));
+    toastMsg(`🗑 ${n} eliminato dall'archivio.`);
+    showSuggestions(document.getElementById("dipendente").value);
+}
+
+function showSuggestions(v) {
+    const box = document.getElementById("suggestions");
+    const l   = getDipList();
+    v = v.trim().toUpperCase();
+    const f = v ? l.filter(x => x.includes(v)) : l;
+    box.innerHTML = "";
+    if (!f.length) { box.style.display = "none"; return; }
+    f.forEach(x => {
+        const row  = document.createElement("div");
+        row.className = "sug-item";
+
+        const nm = document.createElement("span");
+        nm.textContent = x;
+        nm.onclick = () => {
+            document.getElementById("dipendente").value = x;
+            box.style.display = "none";
+            genera();
+        };
+
+        const del = document.createElement("button");
+        del.className = "sug-del";
+        del.textContent = "✕";
+        del.title = "Elimina dipendente dall'archivio";
+        del.onclick = e => { e.stopPropagation(); eliminaDipendente(x); };
+
+        row.appendChild(nm);
+        row.appendChild(del);
+        box.appendChild(row);
+    });
+    box.style.display = "block";
+}
+
+document.addEventListener("click", e => {
+    if (!e.target.closest("#suggestions") && e.target.id !== "dipendente")
+        document.getElementById("suggestions").style.display = "none";
+});
+
+/* ── SAVE / LOAD ─────────────────────────────────────────── */
+function salvaStato() {
+    const key = storageKey();
+    if (!key) return;
+    const data = [];
+    document.querySelectorAll("tbody.data-body tr[data-date]").forEach(r => {
+        const isSat = r.dataset.sat === "1";
+        const obj   = {
+            date:    r.dataset.date,
+            assenza: r.dataset.assenza || "",
+            note:    r.querySelector(".inp-note")?.value || ""
+        };
+        if (isSat) {
+            obj.inAM  = r.querySelector(".t-in")?.value  || "";
+            obj.outAM = r.querySelector(".t-out")?.value || "";
+        } else {
+            obj.inAM  = r.querySelector(".t-in-am")?.value  || "";
+            obj.outAM = r.querySelector(".t-out-am")?.value || "";
+            obj.inPM  = r.querySelector(".t-in-pm")?.value  || "";
+            obj.outPM = r.querySelector(".t-out-pm")?.value || "";
+        }
+        obj.extra = r.querySelector(".inp-extra")?.value || "0";
+        data.push(obj);
+    });
+    localStorage.setItem(key, JSON.stringify(data));
+    const now = new Date().toLocaleTimeString("it-IT", {hour:"2-digit",minute:"2-digit"});
+    document.getElementById("saveStatus").textContent = `✔ Salvato ${now}`;
+}
+
+function caricaStato(saved) {
+    const byDate = {};
+    saved.forEach(d => { byDate[d.date] = d; });
+    document.querySelectorAll("tbody.data-body tr[data-date]").forEach(r => {
+        const s = byDate[r.dataset.date];
+        if (!s) return;
+        const isSat = r.dataset.sat === "1";
+        if (isSat) {
+            if (r.querySelector(".t-in"))  r.querySelector(".t-in").value  = s.inAM  || "07:00";
+            if (r.querySelector(".t-out")) r.querySelector(".t-out").value = s.outAM || "12:00";
+        } else {
+            if (r.querySelector(".t-in-am"))  r.querySelector(".t-in-am").value  = s.inAM  || "07:00";
+            if (r.querySelector(".t-out-am")) r.querySelector(".t-out-am").value = s.outAM || "12:00";
+            if (r.querySelector(".t-in-pm"))  r.querySelector(".t-in-pm").value  = s.inPM  || "14:00";
+            if (r.querySelector(".t-out-pm")) r.querySelector(".t-out-pm").value = s.outPM || "16:00";
+        }
+        if (r.querySelector(".inp-extra")) r.querySelector(".inp-extra").value = s.extra || "0";
+        if (r.querySelector(".inp-note"))  r.querySelector(".inp-note").value  = s.note  || "";
+        if (s.assenza) applyAssenzaToRow(r, s.assenza);
+    });
+    calcola();
+}
+
+/* ── GENERA ──────────────────────────────────────────────── */
+function onFilterChange() { genera(); }
+
+function genera() {
+    const nome = document.getElementById("dipendente").value.trim();
+    if (nome) salvaDipendente(nome);
+    selectedRows.clear();
+
+    const m    = parseInt(mSel.value);
+    const a    = parseInt(document.getElementById("anno").value);
+    const last = new Date(a, m + 1, 0).getDate();
+
+    let html = "";
+    let curWeek = null;
+
+    for (let d = 1; d <= last; d++) {
+        const date   = new Date(a, m, d);
+        const g      = date.getDay();          // 0=Dom … 6=Sab
+        if (g === 0) continue;                 // Domenica → riposo
+
+        const week   = getWeekNum(date);
+        const ds     = `${a}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+        const isSat  = (g === 6);
+
+        if (week !== curWeek) {
+            if (curWeek !== null) html += weekFooterHtml(curWeek) + `</tbody></table></div></div>`;
+            html += `
+            <div class="week-block">
+            <div class="week-hdr">
+                <span class="week-pill">Settimana ${week}</span>
+                <span class="week-line"></span>
+                <span class="week-info" id="wi-${week}"></span>
+            </div>
+            <div class="tbl-wrap">
+            <table data-week="${week}">
+            <thead><tr>
+                <th class="align-left" rowspan="2">Data</th>
+                <th rowspan="2">Giorno</th>
+                <th colspan="2" class="grp-mat">Mattina</th>
+                <th colspan="2" class="grp-pom">Pomeriggio</th>
+                <th rowspan="2">Ore<br>nette</th>
+                <th rowspan="2">Straord.</th>
+                <th rowspan="2">Stato</th>
+                <th rowspan="2">Note</th>
+            </tr><tr>
+                <th class="grp-mat">Entrata</th>
+                <th class="grp-mat">Uscita</th>
+                <th class="grp-pom">Entrata</th>
+                <th class="grp-pom">Uscita</th>
+            </tr></thead>
+            <tbody class="data-body">`;
+            curWeek = week;
+        }
+
+        html += buildRow(d, m, a, ds, g, isSat);
+    }
+
+    if (curWeek !== null) html += weekFooterHtml(curWeek) + `</tbody></table></div></div>`;
+
+    document.getElementById("weeks").innerHTML = html;
+
+    // load saved
+    const key   = storageKey();
+    const saved = key ? JSON.parse(localStorage.getItem(key) || "null") : null;
+    if (saved) caricaStato(saved);
+    else calcola();
+}
+
+function weekFooterHtml(week) {
+    return `<tr class="week-foot" data-foot="${week}">
+        <td class="align-left" colspan="2">Totale settimana</td>
+        <td colspan="4"></td>
+        <td id="wf-ore-${week}">—</td>
+        <td id="wf-ext-${week}">—</td>
+        <td colspan="2"></td>
+    </tr>`;
+}
+
+function buildRow(d, m, a, ds, g, isSat) {
+    const satCls = isSat ? " row-SAT" : "";
+    const satAttr = isSat ? ' data-sat="1"' : '';
+
+    if (isSat) {
+        /* SABATO: turno unico mattina */
+        return `<tr onclick="toggleRow(this)" data-date="${ds}" data-base="${ORE_SAT}"${satAttr} class="${satCls}">
+            <td class="cell-date align-left">${d}/${m+1}</td>
+            <td class="cell-day">SAB</td>
+            <td><input type="time" class="t-in"  value="07:00" onclick="sp(event)" onchange="ic(this)"></td>
+            <td><input type="time" class="t-out" value="12:00" onclick="sp(event)" onchange="ic(this)"></td>
+            <td class="col-pm">—</td>
+            <td class="col-pm">—</td>
+            <td class="cell-ore">0.00</td>
+            <td><input type="number" class="inp-extra" step="0.5" value="0" min="-5" max="12" onclick="sp(event)" onchange="ic(this)"></td>
+            <td class="assenza-cell"></td>
+            <td><input type="text" class="inp-note" placeholder="…" onclick="sp(event)" onchange="salvaStato()"></td>
+        </tr>`;
+    } else {
+        /* LUN–VEN: doppio turno */
+        const gs = G_S[g];
+        return `<tr onclick="toggleRow(this)" data-date="${ds}" data-base="${ORE_WEEKDAY}" class="${satCls}">
+            <td class="cell-date align-left">${d}/${m+1}</td>
+            <td class="cell-day">${gs}</td>
+            <td><input type="time" class="t-in-am"  value="07:00" onclick="sp(event)" onchange="ic(this)"></td>
+            <td><input type="time" class="t-out-am" value="12:00" onclick="sp(event)" onchange="ic(this)"></td>
+            <td><input type="time" class="t-in-pm"  value="14:00" onclick="sp(event)" onchange="ic(this)"></td>
+            <td><input type="time" class="t-out-pm" value="16:00" onclick="sp(event)" onchange="ic(this)"></td>
+            <td class="cell-ore">0.00</td>
+            <td><input type="number" class="inp-extra" step="0.5" value="0" min="-5" max="12" onclick="sp(event)" onchange="ic(this)"></td>
+            <td class="assenza-cell"></td>
+            <td><input type="text" class="inp-note" placeholder="…" onclick="sp(event)" onchange="salvaStato()"></td>
+        </tr>`;
+    }
+}
+
+function sp(e) { e.stopPropagation(); }
+function ic(el) { calcola(); salvaStato(); }
+
+/* ── SELECTION ───────────────────────────────────────────── */
+function toggleRow(r) {
+    if (r.classList.contains("selected")) {
+        r.classList.remove("selected"); selectedRows.delete(r);
+    } else {
+        r.classList.add("selected"); selectedRows.add(r);
+    }
+}
+function clearSelection() {
+    selectedRows.forEach(r => r.classList.remove("selected"));
+    selectedRows.clear();
+}
+
+/* ── ASSENZE ─────────────────────────────────────────────── */
+function applyAssenzaToRow(r, label) {
+    r.classList.remove("row-F","row-P","row-M");
+    r.dataset.assenza = label;
+    if (label) {
+        r.classList.add("row-" + label);
+        r.querySelector(".assenza-cell").innerHTML =
+            `<span class="badge badge-${label}">${label}</span>`;
+    } else {
+        r.querySelector(".assenza-cell").innerHTML = "";
+    }
+}
+
+function applicaAssenza(cls, label) {
+    if (!selectedRows.size) { toastMsg("⚠️ Seleziona prima le righe cliccandoci sopra."); return; }
+    selectedRows.forEach(r => applyAssenzaToRow(r, label));
+    calcola(); salvaStato(); clearSelection();
+}
+
+function resetAssenze() {
+    if (!selectedRows.size) { toastMsg("⚠️ Seleziona prima le righe."); return; }
+    selectedRows.forEach(r => applyAssenzaToRow(r, ""));
+    calcola(); salvaStato(); clearSelection();
+}
+
+/* ── CALCOLA ─────────────────────────────────────────────── */
+function calcRowOre(r) {
+    const isSat   = r.dataset.sat === "1";
+    const assenza = r.dataset.assenza || "";
+    if (assenza) return 0;   // assenza: nessun calcolo ora effettiva
+
+    let net = 0;
+    if (isSat) {
+        const i = hhmm2h(r.querySelector(".t-in")?.value);
+        const o = hhmm2h(r.querySelector(".t-out")?.value);
+        if (i !== null && o !== null) net = Math.max(0, o - i);
+    } else {
+        const iAM = hhmm2h(r.querySelector(".t-in-am")?.value);
+        const oAM = hhmm2h(r.querySelector(".t-out-am")?.value);
+        const iPM = hhmm2h(r.querySelector(".t-in-pm")?.value);
+        const oPM = hhmm2h(r.querySelector(".t-out-pm")?.value);
+        const mattina   = (iAM !== null && oAM !== null) ? Math.max(0, oAM - iAM) : 0;
+        const pomeriggio= (iPM !== null && oPM !== null) ? Math.max(0, oPM - iPM) : 0;
+        net = mattina + pomeriggio;
+    }
+    const extra = parseFloat(r.querySelector(".inp-extra")?.value) || 0;
+    return net + extra;
+}
+
+function calcola() {
+    let oLav = 0, oComp = 0, oExtra = 0;
+    let nGiorni = 0, nPresenti = 0, nFerie = 0, nPermessi = 0, nMalattia = 0;
+    const weekData = {};
+
+    document.querySelectorAll("tbody.data-body tr[data-date]").forEach(r => {
+        nGiorni++;
+        const base    = parseFloat(r.dataset.base) || ORE_WEEKDAY;
+        const assenza = r.dataset.assenza || "";
+        const extra   = parseFloat(r.querySelector(".inp-extra")?.value) || 0;
+        const ore     = calcRowOre(r);
+
+        const cell = r.querySelector(".cell-ore");
+        cell.textContent = h2str(assenza ? 0 : ore);
+        cell.className = "cell-ore";
+        if (!assenza) {
+            if (ore > base)       cell.classList.add("ore-ok");
+            else if (ore < base)  cell.classList.add("ore-low");
+            else if (ore === 0)   cell.classList.add("ore-zero");
+        } else {
+            cell.classList.add("ore-zero");
+        }
+
+        // week accumulation
+        const tbl  = r.closest("table");
+        const week = tbl?.dataset.week || "?";
+        if (!weekData[week]) weekData[week] = { lav: 0, comp: 0, ext: 0 };
+
+        if (!assenza) {
+            oLav  += ore;
+            oComp += ore;
+            oExtra+= extra;
+            nPresenti++;
+            weekData[week].lav  += ore;
+            weekData[week].comp += ore;
+            weekData[week].ext  += extra;
+        } else {
+            oComp += base;
+            weekData[week].comp += base;
+            if (assenza === "F") nFerie++;
+            else if (assenza === "P") nPermessi++;
+            else if (assenza === "M") nMalattia++;
+        }
+    });
+
+    // KPI
+    document.getElementById("kGiorni").textContent   = nGiorni;
+    document.getElementById("kPresenti").textContent  = nPresenti;
+    document.getElementById("kFerie").textContent     = nFerie;
+    document.getElementById("kPermessi").textContent  = nPermessi;
+    document.getElementById("kMalattia").textContent  = nMalattia;
+    document.getElementById("kOreL").textContent      = h2str(oLav);
+    document.getElementById("kExtra").textContent     = h2str(oExtra);
+    document.getElementById("kOreC").textContent      = h2str(oComp);
+
+    // week footers
+    Object.entries(weekData).forEach(([week, wd]) => {
+        const wi = document.getElementById(`wi-${week}`);
+        if (wi) wi.textContent = `Lav.: ${h2str(wd.lav)} h  |  Tot.: ${h2str(wd.comp)} h`;
+        const fo = document.getElementById(`wf-ore-${week}`);
+        if (fo) fo.textContent = h2str(wd.lav);
+        const fe = document.getElementById(`wf-ext-${week}`);
+        if (fe) fe.textContent = h2str(wd.ext);
+    });
+}
+
+/* ── PDF ─────────────────────────────────────────────────── */
+async function scaricaPDF() {
+    if (typeof html2pdf === "undefined") {
+        toastMsg("⚠️ Libreria PDF non disponibile."); return;
+    }
+
+    const nome     = document.getElementById("dipendente").value.trim() || "—";
+    const meseNome = MESI[mSel.value];
+    const anno     = document.getElementById("anno").value;
+    const oggi_str = new Date().toLocaleDateString("it-IT",{day:"2-digit",month:"2-digit",year:"numeric"});
+    const filename = `ProspettoOre_${nome.replace(/\s+/g,"_")}_${meseNome}${anno}.pdf`;
+
+    /* 1. Dati dal DOM */
+    const rows = [];
+    document.querySelectorAll("tbody.data-body tr[data-date]").forEach(r => {
+        const isSat = r.dataset.sat === "1";
+        const ds    = r.dataset.date;
+        const g     = new Date(ds + "T12:00:00").getDay();
+        let inAM="",outAM="",inPM="",outPM="";
+        if (isSat) {
+            inAM  = r.querySelector(".t-in")?.value  || "";
+            outAM = r.querySelector(".t-out")?.value || "";
+        } else {
+            inAM  = r.querySelector(".t-in-am")?.value  || "";
+            outAM = r.querySelector(".t-out-am")?.value || "";
+            inPM  = r.querySelector(".t-in-pm")?.value  || "";
+            outPM = r.querySelector(".t-out-pm")?.value || "";
+        }
+        rows.push({
+            ds, g, isSat,
+            assenza: r.dataset.assenza || "",
+            ore:  r.querySelector(".cell-ore")?.textContent || "0.00",
+            extra:r.querySelector(".inp-extra")?.value || "0",
+            note: r.querySelector(".inp-note")?.value  || ""
+        });
+    });
+
+    /* 2. KPI */
+    const K = {
+        giorni:   document.getElementById("kGiorni").textContent,
+        presenti: document.getElementById("kPresenti").textContent,
+        ferie:    document.getElementById("kFerie").textContent,
+        permessi: document.getElementById("kPermessi").textContent,
+        malattia: document.getElementById("kMalattia").textContent,
+        oreL:     document.getElementById("kOreL").textContent,
+        extra:    document.getElementById("kExtra").textContent,
+        oreC:     document.getElementById("kOreC").textContent
+    };
+
+    /* 3. Stili celle */
+    const C  = "padding:3px 5px;text-align:center;border:1px solid #e5e7eb;font-size:8px;vertical-align:middle;";
+    const CL = "padding:3px 7px;text-align:left;border:1px solid #e5e7eb;font-size:8px;vertical-align:middle;";
+    const TH = "padding:5px;text-align:center;border:1px solid #d1d5db;font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:1px;background:#f3f4f6;color:#4b5563;white-space:nowrap;";
+
+    /* 4. Logo testuale — nessun SVG, rendering garantito */
+    const logoBox =
+        `<td style="background:#1e3a5f;padding:10px 12px;text-align:center;vertical-align:middle;">` +
+        `<div style="font-family:Arial Black,Arial,sans-serif;font-size:20px;font-weight:900;color:white;line-height:1;letter-spacing:1px;">HS</div>` +
+        `<div style="font-family:Arial,sans-serif;font-size:6px;color:rgba(255,255,255,0.5);letter-spacing:2px;margin-top:3px;">TMS</div>` +
+        `</td>`;
+
+    /* 5. Righe tabella giorni */
+    let righe = "";
+    rows.forEach(r => {
+        const [,mm,dd] = r.ds.split("-");
+        const giorno   = G_S[r.g];
+        let bg = "white";
+        let statoTxt = "";
+        if      (r.assenza === "F") { bg = "#f0fdf4"; statoTxt = "FERIE"; }
+        else if (r.assenza === "P") { bg = "#fffbeb"; statoTxt = "PERMESSO"; }
+        else if (r.assenza === "M") { bg = "#fff5f5"; statoTxt = "MALATTIA"; }
+        else if (r.isSat)           { bg = "#fafafa"; }
+        const oreCell  = r.assenza ? `<i style="color:#9ca3af;">—</i>` : `<b>${r.ore}</b>`;
+        const extraCell= parseFloat(r.extra) ? `<b style="color:#d97706;">${r.extra}</b>` : "";
+        const dash     = `<span style="color:#d1d5db;">—</span>`;
+        righe +=
+            `<tr style="background:${bg};">` +
+            `<td style="${CL}font-weight:700;">${dd}/${mm}</td>` +
+            `<td style="${C}color:#6b7280;">${giorno}</td>` +
+            `<td style="${C}">${r.inAM}</td>` +
+            `<td style="${C}">${r.outAM}</td>` +
+            `<td style="${C}">${r.isSat ? dash : r.inPM}</td>` +
+            `<td style="${C}">${r.isSat ? dash : r.outPM}</td>` +
+            `<td style="${C}">${oreCell}</td>` +
+            `<td style="${C}">${extraCell}</td>` +
+            `<td style="${C}font-size:7px;font-weight:700;">${statoTxt}</td>` +
+            `<td style="${CL}color:#6b7280;font-style:italic;font-size:7px;">${r.note}</td>` +
+            `</tr>`;
+    });
+
+    /* 6. Cella KPI */
+    const kBox = (lbl, val, bg, color) =>
+        `<td style="padding:4px;text-align:center;">` +
+        `<div style="background:${bg};border:1px solid #e5e7eb;padding:6px 4px;">` +
+        `<div style="font-size:6px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${color};opacity:.8;margin-bottom:3px;">${lbl}</div>` +
+        `<div style="font-size:16px;font-weight:900;color:${color};line-height:1;">${val}</div>` +
+        `</div></td>`;
+
+    /* 7. HTML completo del PDF */
+    const today = new Date().toLocaleDateString("it-IT");
+    const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:9px;color:#111;background:white;width:1050px;padding:10px;">
+
+<table width="1030" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:1030px;margin-bottom:6px;">
+<tr>
+  <!-- LOGO BOX -->
+  ${logoBox}
+  <!-- NOME AZIENDA -->
+  <td style="padding:0 14px;vertical-align:middle;">
+    <div style="font-size:16px;font-weight:900;color:#1e3a5f;letter-spacing:3px;">HERRERA SYSTEM</div>
+    <div style="font-size:7px;color:#9ca3af;letter-spacing:2px;margin-top:2px;">TIME MANAGEMENT SYSTEM</div>
+  </td>
+  <!-- TITOLO + DIPENDENTE (centro/destra, protagonista) -->
+  <td style="text-align:center;vertical-align:middle;border-left:2px solid #e5e7eb;padding:0 20px;">
+    <div style="font-size:7px;color:#9ca3af;text-transform:uppercase;letter-spacing:2px;margin-bottom:3px;">Prospetto Ore Mensili</div>
+    <div style="font-size:22px;font-weight:900;color:#1e3a5f;letter-spacing:1px;line-height:1.1;">${nome.toUpperCase()}</div>
+    <div style="font-size:9px;color:#6b7280;margin-top:3px;">${meseNome} ${anno}</div>
+  </td>
+  <!-- DATA + CONTRATTO -->
+  <td style="padding-left:16px;border-left:1px solid #e5e7eb;white-space:nowrap;vertical-align:middle;">
+    <div style="font-size:6px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">Emesso il</div>
+    <div style="font-size:9px;color:#374151;font-weight:600;margin-bottom:5px;">${today}</div>
+    <div style="font-size:6px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">Contratto</div>
+    <div style="font-size:8px;color:#374151;">40h/sett · Lun-Ven 07-12/14-16 · Sab 07-12</div>
+  </td>
+</tr>
+</table>
+
+<div style="border-top:3px solid #1e3a5f;border-bottom:1px solid #e5e7eb;background:#f8fafc;padding:3px 8px;margin-bottom:6px;">
+  <span style="font-size:6px;color:#9ca3af;font-style:italic;">
+    Nota: Le ore di lavoro ordinarie ed eventuali straordinarie sono conteggiate unicamente per come riportate sul presente prospetto (modulo interno aziendale).
+    Non sono validi prospetti di altra tipologia o di altre aziende committenti o appaltanti.
+  </span>
+</div>
+
+<table width="1030" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:1030px;margin-bottom:6px;">
+<tr>
+  ${kBox("Giorni Lavorativi", K.giorni,   "#f3f4f6","#374151")}
+  ${kBox("Giorni Presenti",   K.presenti, "#f3f4f6","#374151")}
+  ${kBox("Ferie",             K.ferie,    "#d1fae5","#065f46")}
+  ${kBox("Permessi",          K.permessi, "#fef3c7","#78350f")}
+  ${kBox("Malattia",          K.malattia, "#fee2e2","#7f1d1d")}
+  ${kBox("Ore Lavorate",      K.oreL,     "#dbeafe","#1e40af")}
+  ${kBox("Straordinari",      K.extra,    "#fef3c7","#92400e")}
+  ${kBox("Totale (F+P+M)",    K.oreC,     "#1e3a5f","#ffffff")}
+</tr>
+</table>
+
+<table width="1030" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:1030px;margin-bottom:6px;">
+<thead>
+<tr>
+  <th style="${TH}text-align:left;padding-left:7px;width:40px;">Data</th>
+  <th style="${TH}width:28px;">Giorno</th>
+  <th style="${TH}background:#eff6ff;color:#1d4ed8;width:65px;">Entr.<br>Mattina</th>
+  <th style="${TH}background:#eff6ff;color:#1d4ed8;width:65px;">Usc.<br>Mattina</th>
+  <th style="${TH}background:#f0fdf4;color:#15803d;width:65px;">Entr.<br>Pomerig.</th>
+  <th style="${TH}background:#f0fdf4;color:#15803d;width:65px;">Usc.<br>Pomerig.</th>
+  <th style="${TH}width:55px;">Ore<br>Nette</th>
+  <th style="${TH}width:50px;">Straord.</th>
+  <th style="${TH}width:70px;">Stato</th>
+  <th style="${TH}text-align:left;padding-left:7px;">Note</th>
+</tr>
+</thead>
+<tbody>${righe}</tbody>
+</table>
+
+<table width="1030" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:1030px;">
+<tr>
+  <td width="50%" style="padding-right:8px;vertical-align:top;">
+    <div style="border:1px solid #d1d5db;padding:8px 10px;">
+      <div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#6b7280;margin-bottom:20px;">Firma del Dipendente &nbsp;&mdash;&nbsp; ${nome.toUpperCase()}</div>
+      <div style="border-top:1.5px solid #374151;">&nbsp;</div>
+    </div>
+  </td>
+  <td width="50%" style="padding-left:8px;vertical-align:top;">
+    <div style="border:1px solid #d1d5db;padding:8px 10px;">
+      <div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#6b7280;margin-bottom:20px;">Firma del Responsabile &nbsp;&mdash;&nbsp; Herrera System</div>
+      <div style="border-top:1.5px solid #374151;">&nbsp;</div>
+    </div>
+  </td>
+</tr>
+</table>
+
+</div>`;
+
+    /* ── 8. Render ── */
+    try {
+        await html2pdf().set({
+            margin:      [5, 5, 5, 5],
+            filename,
+            image:       { type: "jpeg", quality: 0.95 },
+            html2canvas: { scale: 2, useCORS: true, logging: false },
+            jsPDF:       { unit: "mm", format: "a4", orientation: "landscape" }
+        }).from(html).save();
+        toastMsg("PDF generato!");
+    } catch (err) {
+        toastMsg("Errore PDF: " + err.message);
+        console.error("PDF error:", err);
+    }
+}
+
+/* ── CSV ─────────────────────────────────────────────────── */
+function esportaCSV() {
+    const nome     = document.getElementById("dipendente").value.trim() || "Dipendente";
+    const meseNome = MESI[mSel.value];
+    const anno     = document.getElementById("anno").value;
+
+    let csv = `Prospetto Ore Mensili — TMS\n`;
+    csv    += `Dipendente:;${nome}\nMese:;${meseNome} ${anno}\nGenerato:;${new Date().toLocaleDateString("it-IT")}\n\n`;
+    csv    += "Data;Giorno;Entr. Mattina;Usc. Mattina;Entr. Pomeriggio;Usc. Pomeriggio;Ore Nette;Straordinari;Stato;Note\n";
+
+    document.querySelectorAll("tbody.data-body tr[data-date]").forEach(r => {
+        const isSat   = r.dataset.sat === "1";
+        const ds      = r.dataset.date || "";
+        const g       = ds ? G_L[new Date(ds).getDay()] : "";
+        const assenza = r.dataset.assenza || "Presente";
+        const ore     = r.querySelector(".cell-ore")?.textContent || "0";
+        const extra   = r.querySelector(".inp-extra")?.value || "0";
+        const note    = (r.querySelector(".inp-note")?.value || "").replace(/"/g,'""');
+
+        let inAM="",outAM="",inPM="",outPM="";
+        if (isSat) {
+            inAM  = r.querySelector(".t-in")?.value  || "";
+            outAM = r.querySelector(".t-out")?.value || "";
+        } else {
+            inAM  = r.querySelector(".t-in-am")?.value  || "";
+            outAM = r.querySelector(".t-out-am")?.value || "";
+            inPM  = r.querySelector(".t-in-pm")?.value  || "";
+            outPM = r.querySelector(".t-out-pm")?.value || "";
+        }
+
+        csv += [ds, g, inAM, outAM, inPM, outPM, ore, extra, assenza, `"${note}"`].join(";") + "\n";
+    });
+
+    csv += `\nNOTA: Le ore di lavoro ordinarie ed eventuali straordinarie sono conteggiate unicamente per come riportate sul presente prospetto (modulo interno aziendale).\n`;
+
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `ProspettoOre_${nome.replace(/\s+/g,"_")}_${meseNome}${anno}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toastMsg("📊 CSV esportato!");
+}
+
+/* ── KEYBOARD SHORTCUTS ──────────────────────────────────── */
+document.addEventListener("keydown", e => {
+    if (e.ctrlKey && e.key === "s") { e.preventDefault(); salvaStato(); toastMsg("💾 Salvato!"); }
+    if (e.key === "Escape")          clearSelection();
+});
+
+/* ── BOOT ────────────────────────────────────────────────── */
+genera();
+</script>
+</body>
+</html>
