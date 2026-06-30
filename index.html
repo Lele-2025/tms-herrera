@@ -345,9 +345,125 @@ td input[type="text"] {
     #pdfSummary { display:block !important; }
     .week-block { page-break-inside:avoid; }
 }
+
+/* ─── LOGIN OVERLAY ─── */
+#loginOverlay {
+    position:fixed; inset:0; z-index:99999;
+    background:linear-gradient(135deg, #0f2240 0%, #1e3a5f 60%, #2563eb 100%);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Inter',system-ui,sans-serif;
+}
+#loginOverlay.hidden { display:none; }
+
+.login-card {
+    background:white; border-radius:1rem;
+    padding:2.5rem 2.25rem 2rem;
+    width:100%; max-width:380px;
+    box-shadow:0 25px 60px rgb(0 0 0/.45);
+    position:relative;
+}
+.login-logo {
+    display:flex; align-items:center; gap:.75rem;
+    margin-bottom:2rem;
+}
+.login-logo-icon {
+    width:46px; height:46px; border-radius:10px;
+    background:linear-gradient(135deg,#1e3a5f,#2563eb);
+    display:grid; place-items:center;
+    font-weight:900; font-size:1rem; color:white;
+    letter-spacing:.5px; flex-shrink:0;
+}
+.login-logo-text { line-height:1.2; }
+.login-logo-title { font-size:.95rem; font-weight:800; color:#1e3a5f; }
+.login-logo-sub   { font-size:.68rem; color:#6b7280; margin-top:1px; }
+
+.login-heading { font-size:1.15rem; font-weight:800; color:#111827; margin-bottom:.3rem; }
+.login-sub     { font-size:.78rem; color:#6b7280; margin-bottom:1.6rem; }
+
+.login-field { margin-bottom:1rem; }
+.login-field label {
+    display:block; font-size:.72rem; font-weight:700;
+    text-transform:uppercase; letter-spacing:.06em;
+    color:#374151; margin-bottom:.35rem;
+}
+.login-field input {
+    width:100%; padding:.65rem .85rem;
+    border:1.5px solid #d1d5db; border-radius:.5rem;
+    font:inherit; font-size:.9rem; color:#111827;
+    background:white; outline:none;
+    transition:border-color .15s, box-shadow .15s;
+}
+.login-field input:focus {
+    border-color:#2563eb;
+    box-shadow:0 0 0 3px rgb(37 99 235/.12);
+}
+
+.login-btn {
+    width:100%; padding:.7rem 1rem; margin-top:.5rem;
+    background:linear-gradient(135deg,#1e3a5f,#2563eb);
+    color:white; border:none; border-radius:.5rem;
+    font:.8rem/1 'Inter',sans-serif; font-weight:700;
+    letter-spacing:.06em; text-transform:uppercase;
+    cursor:pointer; transition:opacity .15s, transform .1s;
+}
+.login-btn:hover  { opacity:.9; }
+.login-btn:active { transform:scale(.98); }
+.login-btn:disabled { opacity:.55; cursor:not-allowed; }
+
+.login-error {
+    margin-top:.85rem; padding:.55rem .8rem;
+    background:#fee2e2; border:1px solid #fca5a5;
+    border-radius:.4rem; font-size:.78rem; color:#991b1b;
+    font-weight:600; display:none; text-align:center;
+}
+.login-error.show { display:block; }
+
+.login-footer {
+    margin-top:1.5rem; padding-top:1rem;
+    border-top:1px solid #f3f4f6;
+    font-size:.65rem; color:#9ca3af; text-align:center;
+    line-height:1.5;
+}
+
+/* logout button */
+.btn-logout {
+    background:rgba(220,38,38,.15); color:#fca5a5;
+    border:1px solid rgba(220,38,38,.3);
+}
+.btn-logout:hover { background:rgba(220,38,38,.3); color:white; }
     </style>
 </head>
 <body>
+
+<!-- ══════════════ LOGIN OVERLAY ══════════════ -->
+<div id="loginOverlay">
+    <div class="login-card">
+        <div class="login-logo">
+            <div class="login-logo-icon">HS</div>
+            <div class="login-logo-text">
+                <div class="login-logo-title">Herrera System</div>
+                <div class="login-logo-sub">Time Management System</div>
+            </div>
+        </div>
+        <div class="login-heading">Accesso riservato</div>
+        <div class="login-sub">Inserisci le credenziali per accedere al sistema.</div>
+        <form id="loginForm" onsubmit="handleLogin(event)" autocomplete="off">
+            <div class="login-field">
+                <label for="loginUser">Username</label>
+                <input id="loginUser" type="text" placeholder="Username" autocomplete="username" spellcheck="false">
+            </div>
+            <div class="login-field">
+                <label for="loginPass">Password</label>
+                <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password">
+            </div>
+            <button class="login-btn" type="submit" id="loginBtn">Accedi</button>
+            <div class="login-error" id="loginError">Credenziali non valide. Riprova.</div>
+        </form>
+        <div class="login-footer">
+            Herrera System © 2026 · Accesso riservato al personale autorizzato
+        </div>
+    </div>
+</div>
 
 <!-- ══════════════ HEADER ══════════════ -->
 <div class="header">
@@ -392,6 +508,8 @@ td input[type="text"] {
         <button class="btn-ghost"  onclick="resetAssenze()">✕ Reset stato</button>
         <div class="vsep"></div>
         <button class="btn-ghost"  onclick="clearSelection()">Deseleziona tutto</button>
+        <div class="vsep"></div>
+        <button class="btn-logout" onclick="handleLogout()">🔒 Esci</button>
         <span id="saveStatus" style="margin-left:.4rem;font-size:.7rem;opacity:.7;color:white;"></span>
     </div>
 
@@ -588,6 +706,60 @@ td input[type="text"] {
 
 <!-- ══════════════ SCRIPT ══════════════ -->
 <script>
+/* ══════════════════════════════════════════════════════════
+   AUTH
+══════════════════════════════════════════════════════════ */
+const AUTH_USER = "Herrera_2026";
+const AUTH_HASH = "882efe32a883ab384cd2793a666d5b07eadf6f4c6f41bba0ef10f07b056e9555";
+const SESSION_KEY = "tms_auth_ok";
+
+async function sha256(str) {
+    const buf = await crypto.subtle.digest("SHA-256",
+        new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf))
+        .map(b => b.toString(16).padStart(2,"0")).join("");
+}
+
+async function handleLogin(e) {
+    e.preventDefault();
+    const btn = document.getElementById("loginBtn");
+    const err = document.getElementById("loginError");
+    const u   = document.getElementById("loginUser").value.trim();
+    const p   = document.getElementById("loginPass").value;
+
+    btn.disabled = true;
+    btn.textContent = "Verifica…";
+    err.classList.remove("show");
+
+    const hash = await sha256(p);
+
+    if (u === AUTH_USER && hash === AUTH_HASH) {
+        sessionStorage.setItem(SESSION_KEY, "1");
+        document.getElementById("loginOverlay").classList.add("hidden");
+        genera();
+    } else {
+        err.classList.add("show");
+        document.getElementById("loginPass").value = "";
+        document.getElementById("loginPass").focus();
+    }
+
+    btn.disabled = false;
+    btn.textContent = "Accedi";
+}
+
+function handleLogout() {
+    sessionStorage.removeItem(SESSION_KEY);
+    location.reload();
+}
+
+function checkAuth() {
+    if (sessionStorage.getItem(SESSION_KEY) === "1") {
+        document.getElementById("loginOverlay").classList.add("hidden");
+        return true;
+    }
+    return false;
+}
+
 /* ── CONSTANTS ───────────────────────────────────────────── */
 const MESI = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
               "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
@@ -1256,7 +1428,7 @@ document.addEventListener("keydown", e => {
 });
 
 /* ── BOOT ────────────────────────────────────────────────── */
-genera();
+if (checkAuth()) genera();
 </script>
 </body>
 </html>
